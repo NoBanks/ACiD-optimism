@@ -10,8 +10,8 @@ import "src/dispute/lib/Types.sol";
 import "src/dispute/lib/Errors.sol";
 
 // Interfaces
-import { IFaultDisputeGameV2 } from "interfaces/dispute/v2/IFaultDisputeGameV2.sol";
-import { IPermissionedDisputeGameV2 } from "interfaces/dispute/v2/IPermissionedDisputeGameV2.sol";
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
+import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
 
 /// @title PermissionedDisputeGame_TestInit
 /// @notice Reusable test initialization for `PermissionedDisputeGame` tests.
@@ -27,9 +27,9 @@ abstract contract PermissionedDisputeGame_TestInit is DisputeGameFactory_TestIni
     uint256 internal initBond;
 
     /// @notice The implementation of the game.
-    IPermissionedDisputeGameV2 internal gameImpl;
+    IPermissionedDisputeGame internal gameImpl;
     /// @notice The `Clone` proxy of the game.
-    IPermissionedDisputeGameV2 internal gameProxy;
+    IPermissionedDisputeGame internal gameProxy;
 
     /// @notice The extra data passed to the game for initialization.
     bytes internal extraData;
@@ -63,7 +63,7 @@ abstract contract PermissionedDisputeGame_TestInit is DisputeGameFactory_TestIni
         extraData = abi.encode(_l2BlockNumber);
 
         (address _impl, AlphabetVM _vm,) = setupPermissionedDisputeGame(_absolutePrestate, PROPOSER, CHALLENGER);
-        gameImpl = IPermissionedDisputeGameV2(_impl);
+        gameImpl = IPermissionedDisputeGame(_impl);
 
         // Create a new game.
         initBond = disputeGameFactory.initBonds(GAME_TYPE);
@@ -73,7 +73,7 @@ abstract contract PermissionedDisputeGame_TestInit is DisputeGameFactory_TestIni
             abi.encode(_rootClaim, 0)
         );
         vm.prank(PROPOSER, PROPOSER);
-        gameProxy = IPermissionedDisputeGameV2(
+        gameProxy = IPermissionedDisputeGame(
             payable(address(disputeGameFactory.create{ value: initBond }(GAME_TYPE, _rootClaim, extraData)))
         );
 
@@ -276,8 +276,8 @@ contract PermissionedDisputeGame_Initialize_Test is PermissionedDisputeGame_Test
 
         Claim claim = _dummyClaim();
         vm.prank(PROPOSER, PROPOSER);
-        vm.expectRevert(IFaultDisputeGameV2.BadExtraData.selector);
-        gameProxy = IPermissionedDisputeGameV2(
+        vm.expectRevert(IFaultDisputeGame.BadExtraData.selector);
+        gameProxy = IPermissionedDisputeGame(
             payable(address(disputeGameFactory.create{ value: initBond }(GAME_TYPE, claim, _extraData)))
         );
     }
@@ -285,7 +285,7 @@ contract PermissionedDisputeGame_Initialize_Test is PermissionedDisputeGame_Test
     /// @notice Tests that the game cannot be initialized with incorrect CWIA calldata length
     ///         caused by additional immutable args data
     function test_initialize_extraImmutableArgsBytes_reverts(uint256 _extraByteCount) public {
-        (bytes memory correctArgs,,) = getPermissionedDisputeGameV2ImmutableArgs(absolutePrestate, PROPOSER, CHALLENGER);
+        (bytes memory correctArgs,,) = getPermissionedDisputeGameImmutableArgs(absolutePrestate, PROPOSER, CHALLENGER);
 
         // We bound the upper end to 23.5KB to ensure that the minimal proxy never surpasses the
         // contract size limit in this test, as CWIA proxies store the immutable args in their
@@ -296,12 +296,12 @@ contract PermissionedDisputeGame_Initialize_Test is PermissionedDisputeGame_Test
         copyBytes(correctArgs, immutableArgs);
 
         // Set up dispute game implementation with target immutableArgs
-        setupPermissionedDisputeGameV2(immutableArgs);
+        setupPermissionedDisputeGame(immutableArgs);
 
         Claim claim = _dummyClaim();
         vm.prank(PROPOSER, PROPOSER);
-        vm.expectRevert(IFaultDisputeGameV2.BadExtraData.selector);
-        gameProxy = IPermissionedDisputeGameV2(
+        vm.expectRevert(IFaultDisputeGame.BadExtraData.selector);
+        gameProxy = IPermissionedDisputeGame(
             payable(
                 address(disputeGameFactory.create{ value: initBond }(GAME_TYPE, claim, abi.encode(validL2BlockNumber)))
             )
@@ -311,7 +311,7 @@ contract PermissionedDisputeGame_Initialize_Test is PermissionedDisputeGame_Test
     /// @notice Tests that the game cannot be initialized with incorrect CWIA calldata length
     ///         caused by missing immutable args data
     function test_initialize_missingImmutableArgsBytes_reverts(uint256 _truncatedByteCount) public {
-        (bytes memory correctArgs,,) = getPermissionedDisputeGameV2ImmutableArgs(absolutePrestate, PROPOSER, CHALLENGER);
+        (bytes memory correctArgs,,) = getPermissionedDisputeGameImmutableArgs(absolutePrestate, PROPOSER, CHALLENGER);
 
         _truncatedByteCount = (_truncatedByteCount % correctArgs.length) + 1;
         bytes memory immutableArgs = new bytes(correctArgs.length - _truncatedByteCount);
@@ -319,12 +319,12 @@ contract PermissionedDisputeGame_Initialize_Test is PermissionedDisputeGame_Test
         copyBytes(correctArgs, immutableArgs);
 
         // Set up dispute game implementation with target immutableArgs
-        setupPermissionedDisputeGameV2(immutableArgs);
+        setupPermissionedDisputeGame(immutableArgs);
 
         Claim claim = _dummyClaim();
         vm.prank(PROPOSER, PROPOSER);
-        vm.expectRevert(IFaultDisputeGameV2.BadExtraData.selector);
-        gameProxy = IPermissionedDisputeGameV2(
+        vm.expectRevert(IFaultDisputeGame.BadExtraData.selector);
+        gameProxy = IPermissionedDisputeGame(
             payable(
                 address(disputeGameFactory.create{ value: initBond }(GAME_TYPE, claim, abi.encode(validL2BlockNumber)))
             )

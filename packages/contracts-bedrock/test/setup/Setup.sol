@@ -40,8 +40,8 @@ import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol"
 import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IBigStepper } from "interfaces/dispute/IBigStepper.sol";
-import { IFaultDisputeGameV2 } from "interfaces/dispute/v2/IFaultDisputeGameV2.sol";
-import { IPermissionedDisputeGameV2 } from "interfaces/dispute/v2/IPermissionedDisputeGameV2.sol";
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
+import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
 import { IL2CrossDomainMessenger } from "interfaces/L2/IL2CrossDomainMessenger.sol";
 import { IL2StandardBridgeInterop } from "interfaces/L2/IL2StandardBridgeInterop.sol";
 import { IL2ToL1MessagePasser } from "interfaces/L2/IL2ToL1MessagePasser.sol";
@@ -105,9 +105,9 @@ abstract contract Setup is FeatureFlags {
     // L1 contracts - dispute
     IDisputeGameFactory disputeGameFactory;
     IAnchorStateRegistry anchorStateRegistry;
-    IFaultDisputeGameV2 faultDisputeGame;
+    IFaultDisputeGame faultDisputeGame;
     IDelayedWETH delayedWeth;
-    IPermissionedDisputeGameV2 permissionedDisputeGame;
+    IPermissionedDisputeGame permissionedDisputeGame;
     IDelayedWETH delayedWETHPermissionedGameProxy;
 
     // L1 contracts - core

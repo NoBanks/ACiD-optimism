@@ -31,7 +31,7 @@ import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 
 import { IProxy } from "interfaces/universal/IProxy.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
-import { IFaultDisputeGameV2 } from "interfaces/dispute/v2/IFaultDisputeGameV2.sol";
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 
@@ -39,7 +39,7 @@ abstract contract OptimismPortal2_TestInit is DisputeGameFactory_TestInit {
     address depositor;
 
     Types.WithdrawalTransaction _defaultTx;
-    IFaultDisputeGameV2 game;
+    IFaultDisputeGame game;
     uint256 _proposedGameIndex;
     uint256 _proposedBlockNumber;
     bytes32 _stateRoot;
@@ -106,7 +106,7 @@ abstract contract OptimismPortal2_TestInit is DisputeGameFactory_TestInit {
         vm.warp(anchorStateRegistry.retirementTimestamp() + 1);
 
         respectedGameType = optimismPortal2.respectedGameType();
-        game = IFaultDisputeGameV2(
+        game = IFaultDisputeGame(
             payable(
                 address(
                     disputeGameFactory.create{ value: disputeGameFactory.initBonds(respectedGameType) }(
@@ -1482,7 +1482,7 @@ contract OptimismPortal2_FinalizeWithdrawalTransaction_Test is OptimismPortal2_T
             latestBlockhash: bytes32(uint256(0))
         });
 
-        IFaultDisputeGameV2 game_noData = IFaultDisputeGameV2(
+        IFaultDisputeGame game_noData = IFaultDisputeGame(
             payable(
                 address(
                     disputeGameFactory.create{ value: disputeGameFactory.initBonds(respectedGameType) }(

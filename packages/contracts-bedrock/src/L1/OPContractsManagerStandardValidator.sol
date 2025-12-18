@@ -22,7 +22,7 @@ import { IOptimismMintableERC20Factory } from "interfaces/universal/IOptimismMin
 import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 import { IL1ERC721Bridge } from "interfaces/L1/IL1ERC721Bridge.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
-import { IPermissionedDisputeGameV2 } from "interfaces/dispute/v2/IPermissionedDisputeGameV2.sol";
+import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
 import { IResourceMetering } from "interfaces/L1/IResourceMetering.sol";
@@ -608,7 +608,7 @@ contract OPContractsManagerStandardValidator is ISemver {
         errors_ = _initialErrors;
         bool isPermissioned = _gameType.raw() == GameTypes.PERMISSIONED_CANNON.raw();
         IDisputeGameFactory _factory = IDisputeGameFactory(_sysCfg.disputeGameFactory());
-        IPermissionedDisputeGameV2 _game = IPermissionedDisputeGameV2(address(_factory.gameImpls(_gameType)));
+        IPermissionedDisputeGame _game = IPermissionedDisputeGame(address(_factory.gameImpls(_gameType)));
 
         if (address(_game) == address(0)) {
             errors_ = internalRequire(false, string.concat(_errorPrefix, "-10"), errors_);
@@ -964,7 +964,7 @@ contract OPContractsManagerStandardValidator is ISemver {
     // @notice Internal function to read all information from a dispute game while supporting both v1 and v2 dispute
     /// games.
     function _decodeDisputeGameImpl(
-        IPermissionedDisputeGameV2 _game,
+        IPermissionedDisputeGame _game,
         bytes memory _gameArgsBytes,
         GameType _gameType
     )

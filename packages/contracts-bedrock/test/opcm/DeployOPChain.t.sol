@@ -19,7 +19,7 @@ import { Features } from "src/libraries/Features.sol";
 // Interfaces
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
 import { Claim, Duration, GameType, GameTypes } from "src/dispute/lib/Types.sol";
-import { IPermissionedDisputeGameV2 } from "interfaces/dispute/v2/IPermissionedDisputeGameV2.sol";
+import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 
 contract DeployOPChain_TestBase is Test, FeatureFlags {
@@ -156,7 +156,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         // Basic non-zero and code checks are covered inside run->checkOutput.
         // Additonal targeted assertions added below.
 
-        IPermissionedDisputeGameV2 pdg = getPermissionedDisputeGame(doo);
+        IPermissionedDisputeGame pdg = getPermissionedDisputeGame(doo);
         assertEq(pdg.splitDepth(), disputeSplitDepth, "PDG splitDepth");
         assertEq(pdg.maxGameDepth(), disputeMaxGameDepth, "PDG maxGameDepth");
         assertEq(Duration.unwrap(pdg.clockExtension()), Duration.unwrap(disputeClockExtension), "PDG clockExtension");
@@ -236,7 +236,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         assertEq(actualPDGAddress, expectedPDGAddress, "PDG address should match expected address");
 
         // Check PDG getters
-        IPermissionedDisputeGameV2 pdg = IPermissionedDisputeGameV2(actualPDGAddress);
+        IPermissionedDisputeGame pdg = IPermissionedDisputeGame(actualPDGAddress);
         bytes32 expectedPrestate = bytes32(0);
         assertEq(pdg.l2BlockNumber(), 0, "3000");
         assertEq(Claim.unwrap(pdg.absolutePrestate()), expectedPrestate, "3100");
@@ -273,8 +273,8 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
     function getPermissionedDisputeGame(DeployOPChain.Output memory doo)
         internal
         view
-        returns (IPermissionedDisputeGameV2)
+        returns (IPermissionedDisputeGame)
     {
-        return IPermissionedDisputeGameV2(address(doo.disputeGameFactoryProxy.gameImpls(GameTypes.PERMISSIONED_CANNON)));
+        return IPermissionedDisputeGame(address(doo.disputeGameFactoryProxy.gameImpls(GameTypes.PERMISSIONED_CANNON)));
     }
 }

@@ -196,12 +196,12 @@
     "sourceCodeHash": "0xf19216b7943479af87a01ab8935e68561853e8e333d09719c917228bc7a01a3a"
   },
   "src/dispute/FaultDisputeGame.sol:FaultDisputeGame": {
-    "initCodeHash": "0xe7d3c982532946d196d7efadb9e2576c76b8f9e0d1f885ac36977d6f3fb72a65",
-    "sourceCodeHash": "0x63222e6926c8dd050d1adc0e65039c42382f269c3b0e113751d79e7a5167b7ac"
+    "initCodeHash": "0x6fc59e2da083c9e2093e42b0fda705e8215cc216e4dcedbf728c08f69ec2d3bd",
+    "sourceCodeHash": "0x4b27319bd90164c89b9f196c328627d277df81e6f16bff3be7c930e40966e5a1"
   },
   "src/dispute/PermissionedDisputeGame.sol:PermissionedDisputeGame": {
-    "initCodeHash": "0xefa478f976e55eb53fcccf653b202bc2532781230f20013450ce0845b77d815c",
-    "sourceCodeHash": "0x335a503a4cc02dd30d88d163393680f3fd89168e0faa4fa4b0ae5da399656f91"
+    "initCodeHash": "0x9896fd04e9a3f9fe4f1d6e93eb298b37a6bfa33424aa705e68cc58d0ba7f3f90",
+    "sourceCodeHash": "0x2d115ac97fc06d9dd2cec8042c7df8d585a9a0fcde29735aa7cb7043d0d540ff"
   },
   "src/dispute/SuperFaultDisputeGame.sol:SuperFaultDisputeGame": {
     "initCodeHash": "0xb5ce71bc56109055cd0dc71fc63015443bbdb29c5975e049802cd1b5188f06ca",
@@ -210,14 +210,6 @@
   "src/dispute/SuperPermissionedDisputeGame.sol:SuperPermissionedDisputeGame": {
     "initCodeHash": "0xa080730728e812e8b02d03b5857b23d16ade46f1656f26f22274835a3100edd7",
     "sourceCodeHash": "0x314b6e0412f698ce3531e8176ce8e5b8a3976cc3fa9d7ecb1f3278612f90ed4e"
-  },
-  "src/dispute/v2/FaultDisputeGameV2.sol:FaultDisputeGameV2": {
-    "initCodeHash": "0x6fc59e2da083c9e2093e42b0fda705e8215cc216e4dcedbf728c08f69ec2d3bd",
-    "sourceCodeHash": "0x7fc97734c12e207f011c4f079fffe84f5bd11f4fb4a95dd56ad6a69df184584f"
-  },
-  "src/dispute/v2/PermissionedDisputeGameV2.sol:PermissionedDisputeGameV2": {
-    "initCodeHash": "0x9896fd04e9a3f9fe4f1d6e93eb298b37a6bfa33424aa705e68cc58d0ba7f3f90",
-    "sourceCodeHash": "0xc0ff6e93b6e2b9111c11e81b5df8948ab71d02b9d2c4dfda982fcb615519f1f7"
   },
   "src/dispute/zk/OptimisticZkGame.sol:OptimisticZkGame": {
     "initCodeHash": "0x0e905fc81f45b1e9aa786e66bfe70b3ec4abd8d550be5d4c8f43cdad6f2618b2",

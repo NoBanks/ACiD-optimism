@@ -277,12 +277,12 @@
             "type": "address"
           },
           {
-            "internalType": "contract IFaultDisputeGameV2",
+            "internalType": "contract IFaultDisputeGame",
             "name": "faultDisputeGame",
             "type": "address"
           },
           {
-            "internalType": "contract IPermissionedDisputeGameV2",
+            "internalType": "contract IPermissionedDisputeGame",
             "name": "permissionedDisputeGame",
             "type": "address"
           },

@@ -67,9 +67,9 @@ import { IBigStepper, IPreimageOracle } from "interfaces/dispute/IBigStepper.sol
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 
-/// @title FaultDisputeGameV2
+/// @title FaultDisputeGame
 /// @notice An implementation of the `IFaultDisputeGame` interface.
-contract FaultDisputeGameV2 is Clone, ISemver {
+contract FaultDisputeGame is Clone, ISemver {
     ////////////////////////////////////////////////////////////////
     //                         Structs                            //
     ////////////////////////////////////////////////////////////////

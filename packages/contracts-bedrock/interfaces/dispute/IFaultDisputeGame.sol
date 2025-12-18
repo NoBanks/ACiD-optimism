@@ -1,16 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
+import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
+import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
+import { IBigStepper } from "interfaces/dispute/IBigStepper.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Claim, Position, Clock, Hash, Duration, BondDistributionMode } from "src/dispute/lib/Types.sol";
 
-import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
-import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
-import { IBigStepper } from "interfaces/dispute/IBigStepper.sol";
-import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
-import { IFaultDisputeGameV2 } from "interfaces/dispute/v2/IFaultDisputeGameV2.sol";
-
-interface IPermissionedDisputeGameV2 is IDisputeGame {
+interface IFaultDisputeGame is IDisputeGame {
     struct ClaimData {
         uint32 parentIndex;
         address counteredBy;
@@ -26,6 +24,13 @@ interface IPermissionedDisputeGameV2 is IDisputeGame {
         uint32 subgameIndex;
         Position leftmostPosition;
         address counteredBy;
+    }
+
+    struct GameConstructorParams {
+        uint256 maxGameDepth;
+        uint256 splitDepth;
+        Duration clockExtension;
+        Duration maxClockDuration;
     }
 
     error AlreadyInitialized();
@@ -100,7 +105,6 @@ interface IPermissionedDisputeGameV2 is IDisputeGame {
     function getNumToResolve(uint256 _claimIndex) external view returns (uint256 numRemainingChildren_);
     function getRequiredBond(Position _position) external view returns (uint256 requiredBond_);
     function hasUnlockedCredit(address) external view returns (bool);
-    function initialize() external payable;
     function l2BlockNumber() external pure returns (uint256 l2BlockNumber_);
     function l2BlockNumberChallenged() external view returns (bool);
     function l2BlockNumberChallenger() external view returns (address);
@@ -127,13 +131,5 @@ interface IPermissionedDisputeGameV2 is IDisputeGame {
     function wasRespectedGameTypeWhenCreated() external view returns (bool);
     function weth() external view returns (IDelayedWETH weth_);
 
-    error BadAuth();
-
-    function proposer() external pure returns (address proposer_);
-    function challenger() external pure returns (address challenger_);
-
-    function __constructor__(
-        IFaultDisputeGameV2.GameConstructorParams memory _params
-    )
-        external;
+    function __constructor__(GameConstructorParams memory _params) external;
 }

@@ -62,7 +62,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract IFaultDisputeGameV2",
+        "internalType": "contract IFaultDisputeGame",
         "name": "_game",
         "type": "address"
       },

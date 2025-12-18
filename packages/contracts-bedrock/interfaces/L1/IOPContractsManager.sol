@@ -12,8 +12,8 @@ import { IAddressManager } from "interfaces/legacy/IAddressManager.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
-import { IFaultDisputeGameV2 } from "interfaces/dispute/v2/IFaultDisputeGameV2.sol";
-import { IPermissionedDisputeGameV2 } from "interfaces/dispute/v2/IPermissionedDisputeGameV2.sol";
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
+import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
 import { IProtocolVersions } from "interfaces/L1/IProtocolVersions.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
@@ -175,8 +175,8 @@ interface IOPContractsManager {
         IOptimismPortal2 optimismPortalProxy;
         IDisputeGameFactory disputeGameFactoryProxy;
         IAnchorStateRegistry anchorStateRegistryProxy;
-        IFaultDisputeGameV2 faultDisputeGame;
-        IPermissionedDisputeGameV2 permissionedDisputeGame;
+        IFaultDisputeGame faultDisputeGame;
+        IPermissionedDisputeGame permissionedDisputeGame;
         IDelayedWETH delayedWETHPermissionedGameProxy;
         IDelayedWETH delayedWETHPermissionlessGameProxy;
     }
@@ -247,7 +247,7 @@ interface IOPContractsManager {
 
     struct AddGameOutput {
         IDelayedWETH delayedWETH;
-        IFaultDisputeGameV2 faultDisputeGame;
+        IFaultDisputeGame faultDisputeGame;
     }
 
     // -------- Constants and Variables --------

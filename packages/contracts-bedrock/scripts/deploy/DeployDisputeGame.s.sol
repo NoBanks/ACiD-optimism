@@ -12,8 +12,8 @@ import { GameType, Claim, Duration } from "src/dispute/lib/Types.sol";
 import { LibString } from "@solady/utils/LibString.sol";
 
 // Interfaces
-import { IFaultDisputeGameV2 } from "interfaces/dispute/v2/IFaultDisputeGameV2.sol";
-import { IPermissionedDisputeGameV2 } from "interfaces/dispute/v2/IPermissionedDisputeGameV2.sol";
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
+import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
 import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
 import { IBigStepper } from "interfaces/dispute/IBigStepper.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
@@ -43,7 +43,7 @@ contract DeployDisputeGame is Script {
     }
 
     struct Output {
-        IPermissionedDisputeGameV2 disputeGameImpl;
+        IPermissionedDisputeGame disputeGameImpl;
     }
 
     function run(Input memory _input) public returns (Output memory output_) {
@@ -56,7 +56,7 @@ contract DeployDisputeGame is Script {
 
     function deployDisputeGameImplV2(Input memory _input, Output memory _output) internal {
         // Shove the arguments into a struct to avoid stack-too-deep errors.
-        IFaultDisputeGameV2.GameConstructorParams memory args = IFaultDisputeGameV2.GameConstructorParams({
+        IFaultDisputeGame.GameConstructorParams memory args = IFaultDisputeGame.GameConstructorParams({
             maxGameDepth: _input.maxGameDepth,
             splitDepth: _input.splitDepth,
             clockExtension: Duration.wrap(_input.clockExtension),
@@ -66,20 +66,20 @@ contract DeployDisputeGame is Script {
         // PermissionedDisputeGame is used as the type here because it is a superset of
         // FaultDisputeGame. If the user requests to deploy a FaultDisputeGame, the user will get a
         // FaultDisputeGame (and not a PermissionedDisputeGame).
-        IPermissionedDisputeGameV2 impl;
+        IPermissionedDisputeGame impl;
         if (LibString.eq(_input.gameKind, "FaultDisputeGame")) {
-            impl = IPermissionedDisputeGameV2(
+            impl = IPermissionedDisputeGame(
                 DeployUtils.createDeterministic({
-                    _name: "FaultDisputeGameV2",
-                    _args: DeployUtils.encodeConstructor(abi.encodeCall(IFaultDisputeGameV2.__constructor__, (args))),
+                    _name: "FaultDisputeGame",
+                    _args: DeployUtils.encodeConstructor(abi.encodeCall(IFaultDisputeGame.__constructor__, (args))),
                     _salt: DeployUtils.DEFAULT_SALT
                 })
             );
         } else {
-            impl = IPermissionedDisputeGameV2(
+            impl = IPermissionedDisputeGame(
                 DeployUtils.createDeterministic({
-                    _name: "PermissionedDisputeGameV2",
-                    _args: DeployUtils.encodeConstructor(abi.encodeCall(IPermissionedDisputeGameV2.__constructor__, (args))),
+                    _name: "PermissionedDisputeGame",
+                    _args: DeployUtils.encodeConstructor(abi.encodeCall(IPermissionedDisputeGame.__constructor__, (args))),
                     _salt: DeployUtils.DEFAULT_SALT
                 })
             );
@@ -117,7 +117,7 @@ contract DeployDisputeGame is Script {
     }
 
     function assertValidOutput(Input memory _input, Output memory _output) internal view {
-        IPermissionedDisputeGameV2 game = _output.disputeGameImpl;
+        IPermissionedDisputeGame game = _output.disputeGameImpl;
 
         DeployUtils.assertValidContractAddress(address(game));
 

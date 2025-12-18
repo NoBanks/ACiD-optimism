@@ -30,7 +30,7 @@ import { ISystemConfig } from "interfaces/L1/ISystemConfig.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
-import { IFaultDisputeGameV2 } from "interfaces/dispute/v2/IFaultDisputeGameV2.sol";
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { IOPContractsManagerUpgrader } from "interfaces/L1/IOPContractsManager.sol";
@@ -181,8 +181,8 @@ contract ForkLive is Deployer, StdAssertions, DisputeGames {
 
         // The PermissionedDisputeGame and PermissionedDelayedWETHProxy are not listed in the registry for OP, so we
         // look it up onchain
-        IFaultDisputeGameV2 permissionedDisputeGame =
-            IFaultDisputeGameV2(address(disputeGameFactory.gameImpls(GameTypes.PERMISSIONED_CANNON)));
+        IFaultDisputeGame permissionedDisputeGame =
+            IFaultDisputeGame(address(disputeGameFactory.gameImpls(GameTypes.PERMISSIONED_CANNON)));
         artifacts.save("PermissionedDisputeGame", address(permissionedDisputeGame));
         artifacts.save("PermissionedDelayedWETHProxy", address(permissionedDisputeGame.weth()));
 

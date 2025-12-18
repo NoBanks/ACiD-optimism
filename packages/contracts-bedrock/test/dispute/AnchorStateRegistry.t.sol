@@ -12,7 +12,7 @@ import { ForgeArtifacts, StorageSlot } from "scripts/libraries/ForgeArtifacts.so
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
-import { IFaultDisputeGameV2 } from "interfaces/dispute/v2/IFaultDisputeGameV2.sol";
+import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 
 /// @title AnchorStateRegistry_TestInit
@@ -21,7 +21,7 @@ abstract contract AnchorStateRegistry_TestInit is BaseFaultDisputeGame_TestInit 
     /// @dev A valid l2BlockNumber that comes after the current anchor root block.
     uint256 validL2BlockNumber;
 
-    event AnchorUpdated(IFaultDisputeGameV2 indexed game);
+    event AnchorUpdated(IFaultDisputeGame indexed game);
     event RespectedGameTypeSet(GameType gameType);
     event RetirementTimestampSet(uint256 timestamp);
 
@@ -970,7 +970,7 @@ contract AnchorStateRegistry_SetAnchorState_Test is AnchorStateRegistry_TestInit
         assertEq(root.raw(), gameProxy.rootClaim().raw());
 
         // Confirm that the anchor game is now set.
-        IFaultDisputeGameV2 anchorGame = anchorStateRegistry.anchorGame();
+        IFaultDisputeGame anchorGame = anchorStateRegistry.anchorGame();
         assertEq(address(anchorGame), address(gameProxy));
     }
 
