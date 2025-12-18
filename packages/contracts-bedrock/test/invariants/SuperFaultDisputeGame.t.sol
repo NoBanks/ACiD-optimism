@@ -3,7 +3,7 @@ pragma solidity 0.8.15;
 
 // Testing
 import { BaseSuperFaultDisputeGame_TestInit } from "test/dispute/SuperFaultDisputeGame.t.sol";
-import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
+
 import { RandomClaimActor } from "test/invariants/FaultDisputeGame.t.sol";
 
 // Libraries
@@ -11,6 +11,9 @@ import "src/dispute/lib/Types.sol";
 import "src/dispute/lib/Errors.sol";
 import { Types } from "src/libraries/Types.sol";
 import { Hashing } from "src/libraries/Hashing.sol";
+
+// Interfaces
+import { IFaultDisputeGameV2 } from "interfaces/dispute/v2/IFaultDisputeGameV2.sol";
 
 contract SuperFaultDisputeGame_Solvency_Invariant is BaseSuperFaultDisputeGame_TestInit {
     Claim internal ROOT_CLAIM;
@@ -33,7 +36,7 @@ contract SuperFaultDisputeGame_Solvency_Invariant is BaseSuperFaultDisputeGame_T
 
         super.init({ _rootClaim: ROOT_CLAIM, _absolutePrestate: ABSOLUTE_PRESTATE, _super: superRootProof });
 
-        actor = new RandomClaimActor(IFaultDisputeGame(address(gameProxy)), vm);
+        actor = new RandomClaimActor(IFaultDisputeGameV2(address(gameProxy)), vm);
 
         targetContract(address(actor));
         vm.startPrank(address(actor));

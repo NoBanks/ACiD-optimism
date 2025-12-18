@@ -120,7 +120,7 @@
             "type": "address"
           },
           {
-            "internalType": "contract IFaultDisputeGame",
+            "internalType": "contract IFaultDisputeGameV2",
             "name": "faultDisputeGame",
             "type": "address"
           }
@@ -364,12 +364,12 @@
             "type": "address"
           },
           {
-            "internalType": "contract IFaultDisputeGame",
+            "internalType": "contract IFaultDisputeGameV2",
             "name": "faultDisputeGame",
             "type": "address"
           },
           {
-            "internalType": "contract IPermissionedDisputeGame",
+            "internalType": "contract IPermissionedDisputeGameV2",
             "name": "permissionedDisputeGame",
             "type": "address"
           },

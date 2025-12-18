@@ -16,8 +16,7 @@ import { DevFeatures } from "src/libraries/DevFeatures.sol";
 // Interfaces
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
-import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
-import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
+
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
@@ -38,6 +37,8 @@ import { IL1StandardBridge } from "interfaces/L1/IL1StandardBridge.sol";
 import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 import { IStandardBridge } from "interfaces/universal/IStandardBridge.sol";
 import { IOPContractsManagerStandardValidator } from "interfaces/L1/IOPContractsManagerStandardValidator.sol";
+import { IFaultDisputeGameV2 } from "interfaces/dispute/v2/IFaultDisputeGameV2.sol";
+import { IPermissionedDisputeGameV2 } from "interfaces/dispute/v2/IPermissionedDisputeGameV2.sol";
 import { IMIPS64 } from "interfaces/cannon/IMIPS64.sol";
 import { IBigStepper } from "../../interfaces/dispute/IBigStepper.sol";
 import { IDisputeGameFactory } from "../../interfaces/dispute/IDisputeGameFactory.sol";
@@ -136,10 +137,10 @@ abstract contract OPContractsManagerStandardValidator_TestInit is CommonTest, Di
     IDisputeGameFactory dgf;
 
     /// @notice The PermissionedDisputeGame implementation.
-    IPermissionedDisputeGame pdgImpl;
+    IPermissionedDisputeGameV2 pdgImpl;
 
     /// @notice The FaultDisputeGame implementation.
-    IFaultDisputeGame fdgImpl;
+    IFaultDisputeGameV2 fdgImpl;
 
     /// @notice The PreimageOracle instance.
     IPreimageOracle preimageOracle;
@@ -161,7 +162,7 @@ abstract contract OPContractsManagerStandardValidator_TestInit is CommonTest, Di
         dgf = IDisputeGameFactory(artifacts.mustGetAddress("DisputeGameFactoryProxy"));
 
         // Load the PermissionedDisputeGame once, we'll need it later.
-        pdgImpl = IPermissionedDisputeGame(artifacts.mustGetAddress("PermissionedDisputeGame"));
+        pdgImpl = IPermissionedDisputeGameV2(artifacts.mustGetAddress("PermissionedDisputeGame"));
 
         // Load the PreimageOracle once, we'll need it later.
         preimageOracle = IPreimageOracle(artifacts.mustGetAddress("PreimageOracle"));
@@ -222,7 +223,7 @@ abstract contract OPContractsManagerStandardValidator_TestInit is CommonTest, Di
 
         if (isForkTest()) {
             // Load the FaultDisputeGame once, we'll need it later.
-            fdgImpl = IFaultDisputeGame(address(disputeGameFactory.gameImpls(GameTypes.CANNON)));
+            fdgImpl = IFaultDisputeGameV2(address(disputeGameFactory.gameImpls(GameTypes.CANNON)));
         } else {
             if (!isDevFeatureEnabled(DevFeatures.OPCM_V2)) {
                 // Deploy a permissionless FaultDisputeGame.
@@ -282,7 +283,7 @@ abstract contract OPContractsManagerStandardValidator_TestInit is CommonTest, Di
                 assertTrue(success, "upgrade failed");
 
                 // Grab the FaultDisputeGame implementation.
-                fdgImpl = IFaultDisputeGame(address(disputeGameFactory.gameImpls(GameTypes.CANNON)));
+                fdgImpl = IFaultDisputeGameV2(address(disputeGameFactory.gameImpls(GameTypes.CANNON)));
             }
         }
     }
@@ -1130,7 +1131,7 @@ contract OPContractsManagerStandardValidator_PermissionedDisputeGame_Test is
     function test_validate_permissionedDisputeGameInvalidClockExtension_succeeds() public {
         vm.mockCall(
             address(pdgImpl),
-            abi.encodeCall(IPermissionedDisputeGame.clockExtension, ()),
+            abi.encodeCall(IPermissionedDisputeGameV2.clockExtension, ()),
             abi.encode(Duration.wrap(1000))
         );
         assertEq("PDDG-80", _validate(true));
@@ -1139,14 +1140,14 @@ contract OPContractsManagerStandardValidator_PermissionedDisputeGame_Test is
     /// @notice Tests that the validate function successfully returns the right error when the
     ///         PermissionedDisputeGame splitDepth is invalid.
     function test_validate_permissionedDisputeGameInvalidSplitDepth_succeeds() public {
-        vm.mockCall(address(pdgImpl), abi.encodeCall(IPermissionedDisputeGame.splitDepth, ()), abi.encode(20));
+        vm.mockCall(address(pdgImpl), abi.encodeCall(IPermissionedDisputeGameV2.splitDepth, ()), abi.encode(20));
         assertEq("PDDG-90", _validate(true));
     }
 
     /// @notice Tests that the validate function successfully returns the right error when the
     ///         PermissionedDisputeGame maxGameDepth is invalid.
     function test_validate_permissionedDisputeGameInvalidMaxGameDepth_succeeds() public {
-        vm.mockCall(address(pdgImpl), abi.encodeCall(IPermissionedDisputeGame.maxGameDepth, ()), abi.encode(50));
+        vm.mockCall(address(pdgImpl), abi.encodeCall(IPermissionedDisputeGameV2.maxGameDepth, ()), abi.encode(50));
         assertEq("PDDG-100", _validate(true));
     }
 
@@ -1155,7 +1156,7 @@ contract OPContractsManagerStandardValidator_PermissionedDisputeGame_Test is
     function test_validate_permissionedDisputeGameInvalidMaxClockDuration_succeeds() public {
         vm.mockCall(
             address(pdgImpl),
-            abi.encodeCall(IPermissionedDisputeGame.maxClockDuration, ()),
+            abi.encodeCall(IPermissionedDisputeGameV2.maxClockDuration, ()),
             abi.encode(Duration.wrap(1000))
         );
         assertEq("PDDG-110", _validate(true));
@@ -1611,7 +1612,7 @@ contract OPContractsManagerStandardValidator_FaultDisputeGame_Test is OPContract
     ///         FaultDisputeGame (permissionless) clockExtension is invalid.
     function test_validate_faultDisputeGameInvalidClockExtension_succeeds() public {
         vm.mockCall(
-            address(fdgImpl), abi.encodeCall(IFaultDisputeGame.clockExtension, ()), abi.encode(Duration.wrap(1000))
+            address(fdgImpl), abi.encodeCall(IFaultDisputeGameV2.clockExtension, ()), abi.encode(Duration.wrap(1000))
         );
         assertEq("PLDG-80,CKDG-80", _validate(true));
     }
@@ -1619,14 +1620,14 @@ contract OPContractsManagerStandardValidator_FaultDisputeGame_Test is OPContract
     /// @notice Tests that the validate function successfully returns the right error when the
     ///         FaultDisputeGame (permissionless) splitDepth is invalid.
     function test_validate_faultDisputeGameInvalidSplitDepth_succeeds() public {
-        vm.mockCall(address(fdgImpl), abi.encodeCall(IFaultDisputeGame.splitDepth, ()), abi.encode(20));
+        vm.mockCall(address(fdgImpl), abi.encodeCall(IFaultDisputeGameV2.splitDepth, ()), abi.encode(20));
         assertEq("PLDG-90,CKDG-90", _validate(true));
     }
 
     /// @notice Tests that the validate function successfully returns the right error when the
     ///         FaultDisputeGame (permissionless) maxGameDepth is invalid.
     function test_validate_faultDisputeGameInvalidMaxGameDepth_succeeds() public {
-        vm.mockCall(address(fdgImpl), abi.encodeCall(IFaultDisputeGame.maxGameDepth, ()), abi.encode(50));
+        vm.mockCall(address(fdgImpl), abi.encodeCall(IFaultDisputeGameV2.maxGameDepth, ()), abi.encode(50));
         assertEq("PLDG-100,CKDG-100", _validate(true));
     }
 
@@ -1634,7 +1635,7 @@ contract OPContractsManagerStandardValidator_FaultDisputeGame_Test is OPContract
     ///         FaultDisputeGame (permissionless) maxClockDuration is invalid.
     function test_validate_faultDisputeGameInvalidMaxClockDuration_succeeds() public {
         vm.mockCall(
-            address(fdgImpl), abi.encodeCall(IFaultDisputeGame.maxClockDuration, ()), abi.encode(Duration.wrap(1000))
+            address(fdgImpl), abi.encodeCall(IFaultDisputeGameV2.maxClockDuration, ()), abi.encode(Duration.wrap(1000))
         );
         assertEq("PLDG-110,CKDG-110", _validate(true));
     }

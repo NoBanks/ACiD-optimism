@@ -19,7 +19,7 @@ import { Features } from "src/libraries/Features.sol";
 // Interfaces
 import { IOPContractsManager } from "interfaces/L1/IOPContractsManager.sol";
 import { Claim, Duration, GameType, GameTypes } from "src/dispute/lib/Types.sol";
-import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
+import { IPermissionedDisputeGameV2 } from "interfaces/dispute/v2/IPermissionedDisputeGameV2.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 
 contract DeployOPChain_TestBase is Test, FeatureFlags {
@@ -156,7 +156,7 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         // Basic non-zero and code checks are covered inside run->checkOutput.
         // Additonal targeted assertions added below.
 
-        IPermissionedDisputeGame pdg = getPermissionedDisputeGame(doo);
+        IPermissionedDisputeGameV2 pdg = getPermissionedDisputeGame(doo);
         assertEq(pdg.splitDepth(), disputeSplitDepth, "PDG splitDepth");
         assertEq(pdg.maxGameDepth(), disputeMaxGameDepth, "PDG maxGameDepth");
         assertEq(Duration.unwrap(pdg.clockExtension()), Duration.unwrap(disputeClockExtension), "PDG clockExtension");
@@ -235,18 +235,15 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
         assertNotEq(actualPDGAddress, address(0), "PDG address should be non-zero");
         assertEq(actualPDGAddress, expectedPDGAddress, "PDG address should match expected address");
 
-        // Skip PDG getter checks for OPCM v2 (game args are passed at creation time)
-        if (!isDevFeatureEnabled(DevFeatures.OPCM_V2)) {
-            // Check PDG getters
-            IPermissionedDisputeGame pdg = IPermissionedDisputeGame(actualPDGAddress);
-            bytes32 expectedPrestate = bytes32(0);
-            assertEq(pdg.l2BlockNumber(), 0, "3000");
-            assertEq(Claim.unwrap(pdg.absolutePrestate()), expectedPrestate, "3100");
-            assertEq(Duration.unwrap(pdg.clockExtension()), 10800, "3200");
-            assertEq(Duration.unwrap(pdg.maxClockDuration()), 302400, "3300");
-            assertEq(pdg.splitDepth(), 30, "3400");
-            assertEq(pdg.maxGameDepth(), 73, "3500");
-        }
+        // Check PDG getters
+        IPermissionedDisputeGameV2 pdg = IPermissionedDisputeGameV2(actualPDGAddress);
+        bytes32 expectedPrestate = bytes32(0);
+        assertEq(pdg.l2BlockNumber(), 0, "3000");
+        assertEq(Claim.unwrap(pdg.absolutePrestate()), expectedPrestate, "3100");
+        assertEq(Duration.unwrap(pdg.clockExtension()), 10800, "3200");
+        assertEq(Duration.unwrap(pdg.maxClockDuration()), 302400, "3300");
+        assertEq(pdg.splitDepth(), 30, "3400");
+        assertEq(pdg.maxGameDepth(), 73, "3500");
 
         // Verify custom gas token feature is set as seeded
         assertEq(
@@ -276,8 +273,8 @@ contract DeployOPChain_Test is DeployOPChain_TestBase {
     function getPermissionedDisputeGame(DeployOPChain.Output memory doo)
         internal
         view
-        returns (IPermissionedDisputeGame)
+        returns (IPermissionedDisputeGameV2)
     {
-        return IPermissionedDisputeGame(address(doo.disputeGameFactoryProxy.gameImpls(GameTypes.PERMISSIONED_CANNON)));
+        return IPermissionedDisputeGameV2(address(doo.disputeGameFactoryProxy.gameImpls(GameTypes.PERMISSIONED_CANNON)));
     }
 }

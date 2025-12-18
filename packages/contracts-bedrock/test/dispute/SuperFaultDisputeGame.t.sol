@@ -28,7 +28,7 @@ import "src/dispute/lib/Errors.sol";
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { IPreimageOracle } from "interfaces/dispute/IBigStepper.sol";
 import { IAnchorStateRegistry } from "interfaces/dispute/IAnchorStateRegistry.sol";
-import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
+import { IFaultDisputeGameV2 } from "interfaces/dispute/v2/IFaultDisputeGameV2.sol";
 import { ISuperFaultDisputeGame } from "interfaces/dispute/ISuperFaultDisputeGame.sol";
 
 contract ClaimCreditReenter {
@@ -2860,13 +2860,13 @@ contract SuperFaultDispute_1v1_Actors_Test is SuperFaultDisputeGame_TestInit {
         internal
     {
         honest = new HonestDisputeActor({
-            _gameProxy: IFaultDisputeGame(address(gameProxy)),
+            _gameProxy: IFaultDisputeGameV2(address(gameProxy)),
             _l2Outputs: _honestL2Outputs,
             _trace: _honestTrace,
             _preStateData: _honestPreStateData
         });
         dishonest = new HonestDisputeActor({
-            _gameProxy: IFaultDisputeGame(address(gameProxy)),
+            _gameProxy: IFaultDisputeGameV2(address(gameProxy)),
             _l2Outputs: _dishonestL2Outputs,
             _trace: _dishonestTrace,
             _preStateData: _dishonestPreStateData

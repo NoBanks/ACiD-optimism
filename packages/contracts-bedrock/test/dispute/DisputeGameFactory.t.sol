@@ -17,10 +17,8 @@ import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol"
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { IProxyAdminOwnedBase } from "interfaces/L1/IProxyAdminOwnedBase.sol";
 import { IPreimageOracle } from "interfaces/cannon/IPreimageOracle.sol";
-import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
 import { IFaultDisputeGameV2 } from "interfaces/dispute/v2/IFaultDisputeGameV2.sol";
 import { ISuperFaultDisputeGame } from "interfaces/dispute/ISuperFaultDisputeGame.sol";
-import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
 import { IPermissionedDisputeGameV2 } from "interfaces/dispute/v2/IPermissionedDisputeGameV2.sol";
 import { ISuperPermissionedDisputeGame } from "interfaces/dispute/ISuperPermissionedDisputeGame.sol";
 // Mocks
@@ -83,30 +81,6 @@ abstract contract DisputeGameFactory_TestInit is CommonTest {
             })
         );
         vm_ = new AlphabetVM(_absolutePrestate, preimageOracle_);
-    }
-
-    function _getGameConstructorParams(
-        Claim _absolutePrestate,
-        AlphabetVM _vm,
-        GameType _gameType,
-        uint256 _l2ChainId
-    )
-        internal
-        view
-        returns (IFaultDisputeGame.GameConstructorParams memory params_)
-    {
-        return IFaultDisputeGame.GameConstructorParams({
-            gameType: _gameType,
-            absolutePrestate: _absolutePrestate,
-            maxGameDepth: 2 ** 3,
-            splitDepth: 2 ** 2,
-            clockExtension: Duration.wrap(3 hours),
-            maxClockDuration: Duration.wrap(3.5 days),
-            vm: _vm,
-            weth: delayedWeth,
-            anchorStateRegistry: anchorStateRegistry,
-            l2ChainId: _l2ChainId
-        });
     }
 
     function _getGameConstructorParamsV2()
@@ -195,25 +169,6 @@ abstract contract DisputeGameFactory_TestInit is CommonTest {
         return setupFaultDisputeGameV2(_absolutePrestate);
     }
 
-    /// @notice Sets up a fault game implementation
-    function setupFaultDisputeGameV1(Claim _absolutePrestate)
-        internal
-        returns (address gameImpl_, AlphabetVM vm_, IPreimageOracle preimageOracle_)
-    {
-        (vm_, preimageOracle_) = _createVM(_absolutePrestate);
-        gameImpl_ = DeployUtils.create1({
-            _name: "FaultDisputeGame",
-            _args: DeployUtils.encodeConstructor(
-                abi.encodeCall(
-                    IFaultDisputeGame.__constructor__,
-                    (_getGameConstructorParams(_absolutePrestate, vm_, GameTypes.CANNON, l2ChainId))
-                )
-            )
-        });
-
-        _setGame(gameImpl_, GameTypes.CANNON);
-    }
-
     /// @notice Sets up immutable data for fault game v2 implementation
     function getFaultDisputeGameV2ImmutableArgs(Claim _absolutePrestate)
         internal
@@ -276,32 +231,6 @@ abstract contract DisputeGameFactory_TestInit is CommonTest {
         returns (address gameImpl_, AlphabetVM vm_, IPreimageOracle preimageOracle_)
     {
         return setupPermissionedDisputeGameV2(_absolutePrestate, _proposer, _challenger);
-    }
-
-    function setupPermissionedDisputeGameV1(
-        Claim _absolutePrestate,
-        address _proposer,
-        address _challenger
-    )
-        internal
-        returns (address gameImpl_, AlphabetVM vm_, IPreimageOracle preimageOracle_)
-    {
-        (vm_, preimageOracle_) = _createVM(_absolutePrestate);
-        gameImpl_ = DeployUtils.create1({
-            _name: "PermissionedDisputeGame",
-            _args: DeployUtils.encodeConstructor(
-                abi.encodeCall(
-                    IPermissionedDisputeGame.__constructor__,
-                    (
-                        _getGameConstructorParams(_absolutePrestate, vm_, GameTypes.PERMISSIONED_CANNON, l2ChainId),
-                        _proposer,
-                        _challenger
-                    )
-                )
-            )
-        });
-
-        _setGame(gameImpl_, GameTypes.PERMISSIONED_CANNON);
     }
 
     function changeClaimStatus(Claim _claim, VMStatus _status) public pure returns (Claim out_) {

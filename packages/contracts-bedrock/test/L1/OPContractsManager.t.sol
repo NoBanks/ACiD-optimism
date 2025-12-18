@@ -33,8 +33,7 @@ import { IOptimismPortal2 } from "interfaces/L1/IOptimismPortal2.sol";
 import { IProxyAdmin } from "interfaces/universal/IProxyAdmin.sol";
 import { ISuperchainConfig } from "interfaces/L1/ISuperchainConfig.sol";
 import { IProtocolVersions } from "interfaces/L1/IProtocolVersions.sol";
-import { IPermissionedDisputeGame } from "interfaces/dispute/IPermissionedDisputeGame.sol";
-import { IFaultDisputeGame } from "interfaces/dispute/IFaultDisputeGame.sol";
+
 import { IDelayedWETH } from "interfaces/dispute/IDelayedWETH.sol";
 import { IDisputeGame } from "interfaces/dispute/IDisputeGame.sol";
 import { IDisputeGameFactory } from "interfaces/dispute/IDisputeGameFactory.sol";
@@ -50,7 +49,7 @@ import { IETHLockbox } from "interfaces/L1/IETHLockbox.sol";
 import { IBigStepper } from "interfaces/dispute/IBigStepper.sol";
 import { ISuperFaultDisputeGame } from "interfaces/dispute/ISuperFaultDisputeGame.sol";
 import { ISuperPermissionedDisputeGame } from "interfaces/dispute/ISuperPermissionedDisputeGame.sol";
-import { IFaultDisputeGame } from "../../interfaces/dispute/IFaultDisputeGame.sol";
+import { IFaultDisputeGameV2 } from "../../interfaces/dispute/v2/IFaultDisputeGameV2.sol";
 
 // Contracts
 import {
@@ -63,7 +62,7 @@ import {
     OPContractsManagerStandardValidator
 } from "src/L1/OPContractsManager.sol";
 import { DisputeGames } from "../setup/DisputeGames.sol";
-import { IPermissionedDisputeGame } from "../../interfaces/dispute/IPermissionedDisputeGame.sol";
+import { IPermissionedDisputeGameV2 } from "../../interfaces/dispute/v2/IPermissionedDisputeGameV2.sol";
 import { IProxy } from "../../interfaces/universal/IProxy.sol";
 import { IDelayedWETH } from "../../interfaces/dispute/IDelayedWETH.sol";
 
@@ -166,16 +165,17 @@ contract OPContractsManager_Upgrade_Harness is CommonTest, DisputeGames {
 
         delayedWETHPermissionedGameProxy =
             IDelayedWETH(payable(artifacts.mustGetAddress("PermissionedDelayedWETHProxy")));
-        permissionedDisputeGame = IPermissionedDisputeGame(address(artifacts.mustGetAddress("PermissionedDisputeGame")));
+        permissionedDisputeGame =
+            IPermissionedDisputeGameV2(address(artifacts.mustGetAddress("PermissionedDisputeGame")));
         IDisputeGameFactory dgf = IDisputeGameFactory(address(artifacts.mustGetAddress("DisputeGameFactoryProxy")));
-        faultDisputeGame = IFaultDisputeGame(address(dgf.gameImpls(GameTypes.CANNON)));
+        faultDisputeGame = IFaultDisputeGameV2(address(dgf.gameImpls(GameTypes.CANNON)));
         delayedWeth = faultDisputeGame.weth();
 
         // grab the pre-upgrade state
         preUpgradeState = PreUpgradeState({
-            cannonAbsolutePrestate: IFaultDisputeGame(address(disputeGameFactory.gameImpls(GameTypes.CANNON)))
+            cannonAbsolutePrestate: IFaultDisputeGameV2(address(disputeGameFactory.gameImpls(GameTypes.CANNON)))
                 .absolutePrestate(),
-            permissionedAbsolutePrestate: IPermissionedDisputeGame(
+            permissionedAbsolutePrestate: IPermissionedDisputeGameV2(
                 address(disputeGameFactory.gameImpls(GameTypes.PERMISSIONED_CANNON))
             ).absolutePrestate(),
             permissionlessWethProxy: delayedWeth,
@@ -350,7 +350,7 @@ contract OPContractsManager_Upgrade_Harness is CommonTest, DisputeGames {
             assertEq(bondAmount, disputeGameFactory.initBonds(gt));
 
             vm.prank(_proposer, _proposer);
-            IPermissionedDisputeGame game = IPermissionedDisputeGame(
+            IPermissionedDisputeGameV2 game = IPermissionedDisputeGameV2(
                 address(disputeGameFactory.create{ value: bondAmount }(gt, claim, abi.encode(l2BlockNumber)))
             );
             (,,,, Claim rootClaim,,) = game.claimData(0);
@@ -602,10 +602,10 @@ contract OPContractsManager_AddGameType_Test is OPContractsManager_TestInit {
 
         // Run the addGameType call.
         IOPContractsManager.AddGameOutput memory output = addGameType(input);
-        IFaultDisputeGame newFDG = assertValidGameType(input, output);
+        IFaultDisputeGameV2 newFDG = assertValidGameType(input, output);
 
         // Check the values on the new game type.
-        IPermissionedDisputeGame newPDG = IPermissionedDisputeGame(address(newFDG));
+        IPermissionedDisputeGameV2 newPDG = IPermissionedDisputeGameV2(address(newFDG));
 
         // Check the proposer and challenger values.
         assertEq(newPDG.proposer(), proposer, "proposer mismatch");
@@ -643,10 +643,10 @@ contract OPContractsManager_AddGameType_Test is OPContractsManager_TestInit {
 
         // Run the addGameType call.
         IOPContractsManager.AddGameOutput memory output = addGameType(input);
-        IFaultDisputeGame newGame = assertValidGameType(input, output);
+        IFaultDisputeGameV2 newGame = assertValidGameType(input, output);
 
         // Check the values on the new game type.
-        IPermissionedDisputeGame notPDG = IPermissionedDisputeGame(address(newGame));
+        IPermissionedDisputeGameV2 notPDG = IPermissionedDisputeGameV2(address(newGame));
 
         // Proposer call should revert because this is a permissionless game.
         vm.expectRevert(); // nosemgrep: sol-safety-expectrevert-no-args
@@ -708,21 +708,21 @@ contract OPContractsManager_AddGameType_Test is OPContractsManager_TestInit {
         // in the implementation contract.
         vm.mockCall(
             address(chainDeployOutput1.permissionedDisputeGame),
-            abi.encodeCall(IPermissionedDisputeGame.proposer, ()),
+            abi.encodeCall(IPermissionedDisputeGameV2.proposer, ()),
             abi.encode(proposer)
         );
         vm.mockCall(
             address(chainDeployOutput1.permissionedDisputeGame),
-            abi.encodeCall(IPermissionedDisputeGame.challenger, ()),
+            abi.encodeCall(IPermissionedDisputeGameV2.challenger, ()),
             abi.encode(challenger)
         );
 
         // Run the addGameType call.
         IOPContractsManager.AddGameOutput memory output = addGameType(input);
         vm.clearMockedCalls();
-        IFaultDisputeGame newGame = assertValidGameType(input, output);
+        IFaultDisputeGameV2 newGame = assertValidGameType(input, output);
         // Check the values on the new game type.
-        IPermissionedDisputeGame newPDG = IPermissionedDisputeGame(address(newGame));
+        IPermissionedDisputeGameV2 newPDG = IPermissionedDisputeGameV2(address(newGame));
         assertEq(newPDG.proposer(), proposer, "proposer mismatch");
         assertEq(newPDG.challenger(), challenger, "challenger mismatch");
 
@@ -744,7 +744,7 @@ contract OPContractsManager_AddGameType_Test is OPContractsManager_TestInit {
         assertValidGameType(input, output);
 
         // Grab the new game type.
-        IPermissionedDisputeGame notPDG = IPermissionedDisputeGame(address(output.faultDisputeGame));
+        IPermissionedDisputeGameV2 notPDG = IPermissionedDisputeGameV2(address(output.faultDisputeGame));
 
         // Proposer should fail, this is a permissionless game.
         vm.expectRevert(); // nosemgrep: sol-safety-expectrevert-no-args
@@ -832,7 +832,7 @@ contract OPContractsManager_AddGameType_Test is OPContractsManager_TestInit {
         IOPContractsManager.AddGameOutput memory ago
     )
         internal
-        returns (IFaultDisputeGame)
+        returns (IFaultDisputeGameV2)
     {
         // Create a game so we can assert on game args which aren't baked into the implementation contract
         Claim claim;
@@ -850,7 +850,7 @@ contract OPContractsManager_AddGameType_Test is OPContractsManager_TestInit {
             claim = Claim.wrap(bytes32(uint256(9876)));
             extraData = abi.encode(uint256(123)); // l2BlockNumber
         }
-        IFaultDisputeGame game = IFaultDisputeGame(
+        IFaultDisputeGameV2 game = IFaultDisputeGameV2(
             payable(
                 createGame(chainDeployOutput1.disputeGameFactoryProxy, agi.disputeGameType, proposer, claim, extraData)
             )
@@ -896,10 +896,10 @@ contract OPContractsManager_AddGameType_Test is OPContractsManager_TestInit {
 
         // Run the addGameType call.
         IOPContractsManager.AddGameOutput memory output = addGameType(input);
-        IFaultDisputeGame game = assertValidGameType(input, output);
+        IFaultDisputeGameV2 game = assertValidGameType(input, output);
 
         // Check the values on the new game type.
-        IPermissionedDisputeGame notPDG = IPermissionedDisputeGame(address(game));
+        IPermissionedDisputeGameV2 notPDG = IPermissionedDisputeGameV2(address(game));
 
         // Proposer call should revert because this is a permissionless game.
         vm.expectRevert(); // nosemgrep: sol-safety-expectrevert-no-args
@@ -920,7 +920,7 @@ contract OPContractsManager_AddGameType_Test is OPContractsManager_TestInit {
         assertValidGameType(input, output);
 
         // Grab the new game type.
-        IPermissionedDisputeGame notPDG = IPermissionedDisputeGame(address(output.faultDisputeGame));
+        IPermissionedDisputeGameV2 notPDG = IPermissionedDisputeGameV2(address(output.faultDisputeGame));
 
         // Proposer should fail, this is a permissionless game.
         vm.expectRevert(); // nosemgrep: sol-safety-expectrevert-no-args
@@ -960,7 +960,7 @@ contract OPContractsManager_UpdatePrestate_Test is OPContractsManager_TestInit {
     {
         bytes memory args = _dgf.gameArgs(_gameType);
         if (args.length == 0) {
-            IPermissionedDisputeGame game = IPermissionedDisputeGame(address(_dgf.gameImpls(_gameType)));
+            IPermissionedDisputeGameV2 game = IPermissionedDisputeGameV2(address(_dgf.gameImpls(_gameType)));
             gameArgs_.absolutePrestate = game.absolutePrestate().raw();
             gameArgs_.vm = address(game.vm());
             gameArgs_.anchorStateRegistry = address(game.anchorStateRegistry());
@@ -1094,12 +1094,12 @@ contract OPContractsManager_UpdatePrestate_Test is OPContractsManager_TestInit {
         );
         vm.mockCall(
             address(chainDeployOutput1.permissionedDisputeGame),
-            abi.encodeCall(IPermissionedDisputeGame.proposer, ()),
+            abi.encodeCall(IPermissionedDisputeGameV2.proposer, ()),
             abi.encode(proposer)
         );
         vm.mockCall(
             address(chainDeployOutput1.permissionedDisputeGame),
-            abi.encodeCall(IPermissionedDisputeGame.challenger, ()),
+            abi.encodeCall(IPermissionedDisputeGameV2.challenger, ()),
             abi.encode(challenger)
         );
     }
@@ -1441,11 +1441,11 @@ contract OPContractsManager_Upgrade_Test is OPContractsManager_Upgrade_Harness {
     /// @notice Tests that the absolute prestate can be overridden using the upgrade config.
     function test_upgrade_absolutePrestateOverride_succeeds() public {
         // Get the pdg and fdg before the upgrade
-        Claim pdgPrestateBefore = IPermissionedDisputeGame(
+        Claim pdgPrestateBefore = IPermissionedDisputeGameV2(
             address(disputeGameFactory.gameImpls(GameTypes.PERMISSIONED_CANNON))
         ).absolutePrestate();
         Claim fdgPrestateBefore =
-            IFaultDisputeGame(address(disputeGameFactory.gameImpls(GameTypes.CANNON))).absolutePrestate();
+            IFaultDisputeGameV2(address(disputeGameFactory.gameImpls(GameTypes.CANNON))).absolutePrestate();
 
         // Assert that the prestate is not zero.
         assertNotEq(pdgPrestateBefore.raw(), bytes32(0));
@@ -1478,11 +1478,11 @@ contract OPContractsManager_Upgrade_Test is OPContractsManager_Upgrade_Harness {
     ///         absolute prestate.
     function test_upgrade_absolutePrestateNotSet_succeeds() public {
         // Get the pdg and fdg before the upgrade
-        Claim pdgPrestateBefore = IPermissionedDisputeGame(
+        Claim pdgPrestateBefore = IPermissionedDisputeGameV2(
             address(disputeGameFactory.gameImpls(GameTypes.PERMISSIONED_CANNON))
         ).absolutePrestate();
         Claim fdgPrestateBefore =
-            IFaultDisputeGame(address(disputeGameFactory.gameImpls(GameTypes.CANNON))).absolutePrestate();
+            IFaultDisputeGameV2(address(disputeGameFactory.gameImpls(GameTypes.CANNON))).absolutePrestate();
 
         // Assert that the prestate is not zero.
         assertNotEq(pdgPrestateBefore.raw(), bytes32(0));
@@ -1512,11 +1512,11 @@ contract OPContractsManager_Upgrade_Test is OPContractsManager_Upgrade_Harness {
     ///         set a cannon prestate.
     function test_upgrade_cannonPrestateNotSet_succeeds() public {
         // Get the pdg and fdg before the upgrade
-        Claim pdgPrestateBefore = IPermissionedDisputeGame(
+        Claim pdgPrestateBefore = IPermissionedDisputeGameV2(
             address(disputeGameFactory.gameImpls(GameTypes.PERMISSIONED_CANNON))
         ).absolutePrestate();
         Claim fdgPrestateBefore =
-            IFaultDisputeGame(address(disputeGameFactory.gameImpls(GameTypes.CANNON))).absolutePrestate();
+            IFaultDisputeGameV2(address(disputeGameFactory.gameImpls(GameTypes.CANNON))).absolutePrestate();
 
         // Assert that the prestate is not zero.
         assertNotEq(pdgPrestateBefore.raw(), bytes32(0));
@@ -1547,11 +1547,11 @@ contract OPContractsManager_Upgrade_Test is OPContractsManager_Upgrade_Harness {
     /// @notice Tests that the cannon absolute prestate is updated even if the cannon kona prestate is not specified
     function test_upgrade_cannonKonaPrestateNotSet_succeeds() public {
         // Get the pdg and fdg before the upgrade
-        Claim pdgPrestateBefore = IPermissionedDisputeGame(
+        Claim pdgPrestateBefore = IPermissionedDisputeGameV2(
             address(disputeGameFactory.gameImpls(GameTypes.PERMISSIONED_CANNON))
         ).absolutePrestate();
         Claim fdgPrestateBefore =
-            IFaultDisputeGame(address(disputeGameFactory.gameImpls(GameTypes.CANNON))).absolutePrestate();
+            IFaultDisputeGameV2(address(disputeGameFactory.gameImpls(GameTypes.CANNON))).absolutePrestate();
 
         // Assert that the prestate is not zero.
         assertNotEq(pdgPrestateBefore.raw(), bytes32(0));
@@ -1598,13 +1598,13 @@ contract OPContractsManager_Upgrade_Test is OPContractsManager_Upgrade_Harness {
         opChainConfigs[0].cannonPrestate = Claim.wrap(bytes32(0));
 
         // Get the address of the PermissionedDisputeGame.
-        IPermissionedDisputeGame pdg =
-            IPermissionedDisputeGame(address(disputeGameFactory.gameImpls(GameTypes.PERMISSIONED_CANNON)));
+        IPermissionedDisputeGameV2 pdg =
+            IPermissionedDisputeGameV2(address(disputeGameFactory.gameImpls(GameTypes.PERMISSIONED_CANNON)));
 
         // Mock the PDG to return a prestate of zero.
         vm.mockCall(
             address(pdg),
-            abi.encodeCall(IPermissionedDisputeGame.absolutePrestate, ()),
+            abi.encodeCall(IPermissionedDisputeGameV2.absolutePrestate, ()),
             abi.encode(Claim.wrap(bytes32(0)))
         );
 
@@ -2322,7 +2322,7 @@ contract OPContractsManager_Deploy_Test is DeployOPChain_TestBase, DisputeGames 
         // Create a game proxy to test immutable fields
         Claim claim = Claim.wrap(bytes32(uint256(9876)));
         uint256 l2BlockNumber = uint256(123);
-        IPermissionedDisputeGame pdg = IPermissionedDisputeGame(
+        IPermissionedDisputeGameV2 pdg = IPermissionedDisputeGameV2(
             payable(
                 createGame(
                     opcmOutput.disputeGameFactoryProxy,

@@ -90,7 +90,7 @@
             "type": "address"
           },
           {
-            "internalType": "contract IFaultDisputeGame",
+            "internalType": "contract IFaultDisputeGameV2",
             "name": "faultDisputeGame",
             "type": "address"
           }
