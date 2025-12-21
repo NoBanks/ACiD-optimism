@@ -2,11 +2,14 @@ package interop
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log/slog"
 	"math/big"
 	"reflect"
+	"sync"
 	"testing"
+	"time"
 
 	altda "github.com/ethereum-optimism/optimism/op-alt-da"
 	"github.com/ethereum-optimism/optimism/op-challenger/game/fault/trace/super"
@@ -20,6 +23,9 @@ import (
 	"github.com/ethereum-optimism/optimism/op-program/client/claim"
 	"github.com/ethereum-optimism/optimism/op-program/client/interop"
 	"github.com/ethereum-optimism/optimism/op-program/client/interop/types"
+	hostcommon "github.com/ethereum-optimism/optimism/op-program/host/common"
+	hostconfig "github.com/ethereum-optimism/optimism/op-program/host/config"
+	"github.com/ethereum-optimism/optimism/op-program/host/kvstore"
 	"github.com/ethereum-optimism/optimism/op-service/eth"
 	"github.com/ethereum-optimism/optimism/op-service/testlog"
 	"github.com/ethereum-optimism/optimism/op-supervisor/supervisor/backend/depset"
@@ -1398,6 +1404,114 @@ func TestInteropFaultProofs_DepositMessage_InvalidExecution(gt *testing.T) {
 	runFppAndChallengerTests(gt, system, tests)
 }
 
+func TestInteropFaultProofs_DeepCanonicalBlockQuery(gt *testing.T) {
+	// Test asserts that EIP-2935 is utilized for efficient canonical block queries
+	// Test Setup:
+	// 1. Generate long chains for networks A and B
+	// 2. Add exec message on chain B referencing early init message on chain A
+	// 3. Run the FPP
+	// 4. Assert that EIP-2935 is utilized:
+	// 5. Assert that FP host queries oracle at most N times, where N is (head - init_msg_block) / 8191
+
+	// The goal is to ensure that the Fault Proof Program (FPP) does not walk back in a O(N) direct linear fashion when consolidating the interop block that references the earlier message.
+	// Instead, EIP-2935 should be utilized to skip over a range of blocks for a speed up.
+
+	t := helpers.NewDefaultTesting(gt)
+	system := dsl.NewInteropDSL(t)
+	actors := system.Actors
+	alice := system.CreateUser()
+	emitter := system.DeployEmitterContracts()
+
+	// Add some initial blocks for stability
+	system.AddL2Block(actors.ChainA)
+	system.AddL2Block(actors.ChainB)
+	system.SubmitBatchData()
+
+	// Generate blocks until we reach the early message emission point
+	const earlyBlockNumber = 100
+	for i := 0; i < earlyBlockNumber; i++ {
+		system.AdvanceSafeHeads()
+	}
+
+	// Emit a message on chain A at this early point
+	system.AddL2Block(actors.ChainA, dsl.WithL2BlockTransactions(
+		emitter.EmitMessage(alice, "early message"),
+	))
+	initMsg := emitter.LastEmittedMessage()
+	emitBlockNum := actors.ChainA.Sequencer.L2Unsafe().Number
+	system.AddL2Block(actors.ChainB)
+	system.SubmitBatchData()
+
+	// Generate many more blocks to create a large distance between emission and execution
+	// This distance should trigger EIP-2935 optimization during canonical block verification
+	const totalBlocks = 10000
+	currentBlockNum := int(emitBlockNum)
+	for currentBlockNum < totalBlocks {
+		system.AdvanceSafeHeads()
+		currentBlockNum++
+
+		// Periodically submit batch data to avoid overwhelming the batcher
+		if currentBlockNum%100 == 0 {
+			gt.Logf("Generated %d blocks...", currentBlockNum)
+			system.SubmitBatchData()
+		}
+	}
+	system.SubmitBatchData()
+
+	// Now execute the old message on chain B
+	// During consolidation, the FPP will need to verify the canonical hash of the early block
+	// This is where EIP-2935 should provide O(distance/8191) efficiency instead of O(distance)
+	system.AddL2Block(actors.ChainB, dsl.WithL2BlockTransactions(
+		system.InboxContract.Execute(alice, initMsg),
+	))
+	execTx := system.InboxContract.LastTransaction()
+	system.AddL2Block(actors.ChainA)
+	system.SubmitBatchData(dsl.WithSkipCrossSafeUpdate())
+
+	endTimestamp := actors.ChainB.Sequencer.L2Unsafe().Time
+	startTimestamp := endTimestamp - 1
+
+	// Capture the optimistic state before cross-safe processing
+	preConsolidation := system.Outputs.TransitionState(startTimestamp, consolidateStep,
+		system.Outputs.OptimisticBlockAtTimestamp(actors.ChainA, endTimestamp),
+		system.Outputs.OptimisticBlockAtTimestamp(actors.ChainB, endTimestamp),
+	).Marshal()
+
+	// Process cross-safe to get the canonical end state
+	system.ProcessCrossSafe()
+	execTx.CheckIncluded()
+	crossSafeEnd := system.Outputs.SuperRoot(endTimestamp)
+
+	// Run the FPP test to verify the consolidation step with RPC tracking
+	// The FPP will need to verify the canonical hash of the early message block
+	// EIP-2935 should make this efficient by using the history storage contract
+	test := &transitionTest{
+		name:               "Consolidate-DeepCanonicalQuery",
+		agreedClaim:        preConsolidation,
+		disputedClaim:      crossSafeEnd.Marshal(),
+		disputedTraceIndex: consolidateStep,
+		expectValid:        true,
+	}
+
+	// Track block hash lookups to verify EIP-2935 efficiency
+	lookupTracker := newBlockHashLookupTracker()
+	runFppTestWithTracking(gt, test, system.Actors, system.DepSet(), lookupTracker)
+
+	// Verify EIP-2935 provides logarithmic efficiency
+	// Without EIP-2935: would need O(N) queries for ~9900 block distance
+	// With EIP-2935: should need O(N/8191) queries - approximately 2-3 queries
+	blockDistance := totalBlocks - int(emitBlockNum)
+	maxExpectedLookups := blockDistance/params.HistoryServeWindow + 5 // +5 for buffer
+	gt.Logf("Block distance: %d, Block hash lookups: %d, max expected: %d", blockDistance, lookupTracker.GetLookupCount(), maxExpectedLookups)
+	require.LessOrEqual(gt, lookupTracker.GetLookupCount(), maxExpectedLookups,
+		"EIP-2935 should provide logarithmic efficiency, but got too many lookups")
+	require.Greater(gt, lookupTracker.GetLookupCount(), 0,
+		"Should have made at least some block hash lookups")
+
+	// Also run challenger test (without tracking since it uses different infrastructure)
+	runChallengerTest(gt, test, system.Actors)
+}
+
 // Returns true if all tests passed, otherwise returns false
 func runFppAndChallengerTests(gt *testing.T, system *dsl.InteropDSL, tests []*transitionTest) bool {
 	passed := true
@@ -1573,6 +1687,88 @@ func assertUserDepositEmitted(t helpers.Testing, chain *dsl.Chain, number *big.I
 	userDepositTx := block.Transactions()[1]
 	require.NotNil(t, userDepositTx.To())
 	require.Equal(t, emitter.Address(chain), *userDepositTx.To())
+}
+
+// blockHashLookupTracker tracks block hash lookup hints to measure canonical query efficiency
+type blockHashLookupTracker struct {
+	lookupCount int
+	mu          sync.Mutex
+	hostcommon.Prefetcher
+}
+
+func newBlockHashLookupTracker() *blockHashLookupTracker {
+	return &blockHashLookupTracker{}
+}
+
+func (t *blockHashLookupTracker) Hint(hint string) error {
+	// Track block hash lookup hints for canonical block verification
+	// These hints use the format: "l2-block-hash <block_number> <head_hash> <chain_id>"
+	if len(hint) >= 13 && hint[:13] == "l2-block-hash" {
+		t.mu.Lock()
+		t.lookupCount++
+		t.mu.Unlock()
+	}
+	if t.Prefetcher != nil {
+		return t.Prefetcher.Hint(hint)
+	}
+	return nil
+}
+
+func (t *blockHashLookupTracker) GetLookupCount() int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.lookupCount
+}
+
+// runFppTestWithTracking runs the FPP test with block hash lookup tracking
+func runFppTestWithTracking(gt *testing.T, test *transitionTest, actors *dsl.InteropActors, depSet *depset.StaticConfigDependencySet, tracker *blockHashLookupTracker) {
+	t := helpers.SubTest(gt)
+	if test.skipProgram {
+		t.Skip("Not yet implemented")
+		return
+	}
+	logger := testlog.Logger(t, slog.LevelInfo)
+	l1Head := test.l1Head
+	if l1Head == (common.Hash{}) {
+		l1Head = actors.L1Miner.L1Chain().CurrentBlock().Hash()
+	}
+	proposalTimestamp := test.proposalTimestamp
+	if proposalTimestamp == 0 {
+		proposalTimestamp = actors.ChainA.Sequencer.L2Unsafe().Time
+	}
+
+	// Create a custom prefetcher that wraps the default one with tracking
+	withTrackingPrefetcher := hostcommon.WithPrefetcher(func(ctx context.Context, logger log.Logger, kv kvstore.KV, cfg *hostconfig.Config) (hostcommon.Prefetcher, error) {
+		// Get fixture inputs to pass to the prefetcher creator
+		var fixtureInputs fpHelpers.FixtureInputs
+		WithInteropEnabled(t, actors, depSet, test.agreedClaim, crypto.Keccak256Hash(test.disputedClaim), proposalTimestamp)(&fixtureInputs)
+
+		// Create the actual prefetcher
+		prefetcher, err := fpHelpers.CreateInprocessPrefetcher(t, ctx, logger, actors.L1Miner, kv, cfg, &fixtureInputs)
+		if err != nil {
+			return nil, err
+		}
+
+		// Wrap it with our tracker
+		tracker.Prefetcher = prefetcher
+		return tracker, nil
+	})
+
+	// Run the FPP with the tracking prefetcher
+	ctx, cancel := context.WithTimeout(t.Ctx(), 5*time.Minute)
+	defer cancel()
+
+	var fixtureInputs fpHelpers.FixtureInputs
+	WithInteropEnabled(t, actors, depSet, test.agreedClaim, crypto.Keccak256Hash(test.disputedClaim), proposalTimestamp)(&fixtureInputs)
+	fpHelpers.WithL1Head(l1Head)(&fixtureInputs)
+
+	programCfg := fpHelpers.NewOpProgramCfg(&fixtureInputs)
+	err := hostcommon.FaultProofProgram(ctx, logger, programCfg, withTrackingPrefetcher)
+	if !test.expectValid {
+		require.Error(t, err, "Expected FPP to fail for invalid claim")
+	} else {
+		require.NoError(t, err, "Expected FPP to succeed for valid claim")
+	}
 }
 
 type transitionTest struct {
