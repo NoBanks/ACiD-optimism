@@ -10,11 +10,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download op-deployer v0.5.2
+      - name: Download and setup op-deployer v0.5.2
         run: |
           curl -L -o op-deployer.tar.gz https://github.com/ethereum-optimism/optimism/releases/download/op-deployer%2Fv0.5.2/op-deployer-0.5.2-linux-amd64.tar.gz
           tar -xzf op-deployer.tar.gz
-          chmod +x op-deployer
+          echo "=== Directory contents after extraction ==="
+          ls -la
+          echo "=== Finding op-deployer binary ==="
+          find . -name "op-deployer" -type f 2>/dev/null || echo "No file found"
+          find . -type f -executable 2>/dev/null | head -20
+          # The binary should be directly extracted
+          if [ -f "./op-deployer" ]; then
+            chmod +x ./op-deployer
+          fi
 
       - name: Create deployment config
         run: |
@@ -60,7 +68,18 @@ jobs:
           PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
           L1_RPC_URL: "https://ethereum-sepolia-rpc.publicnode.com"
         run: |
-          ./op-deployer apply \
+          # Find the actual binary
+          DEPLOYER_BIN=$(find . -name "op-deployer" -type f 2>/dev/null | head -1)
+          if [ -z "$DEPLOYER_BIN" ]; then
+            echo "ERROR: Could not find op-deployer binary"
+            echo "=== Full directory listing ==="
+            ls -laR
+            exit 1
+          fi
+          chmod +x "$DEPLOYER_BIN"
+          echo "Using binary: $DEPLOYER_BIN"
+
+          "$DEPLOYER_BIN" apply \
             --workdir ./deployer \
             --l1-rpc-url "$L1_RPC_URL" \
             --private-key "$PRIVATE_KEY"
