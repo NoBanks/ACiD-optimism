@@ -1,0 +1,109 @@
+name: Generate ACiD Chain Configs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download deployment state
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-state
+          path: deployer
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 20774279138
+
+      - name: Download and setup op-deployer v0.5.2
+        run: |
+          curl -L -o op-deployer.tar.gz https://github.com/ethereum-optimism/optimism/releases/download/op-deployer%2Fv0.5.2/op-deployer-0.5.2-linux-amd64.tar.gz
+          tar -xzf op-deployer.tar.gz
+          chmod +x ./op-deployer
+          echo "op-deployer ready"
+
+      - name: Recreate intent.toml
+        run: |
+          cat > deployer/intent.toml << 'EOF'
+          configType = "standard-overrides"
+          l1ChainID = 11155111
+          opcmAddress = "0xc69e4c24db479191676611a25d977203c3bdca62"
+          fundDevAccounts = true
+          l1ContractsLocator = "embedded"
+          l2ContractsLocator = "embedded"
+
+          [[chains]]
+            id = "0x00000000000000000000000000000000000000000000000000000000000006b2"
+            baseFeeVaultRecipient = "0xb03884A8c5bB132379173E459dBD7cfE3f93eFbd"
+            l1FeeVaultRecipient = "0xb03884A8c5bB132379173E459dBD7cfE3f93eFbd"
+            sequencerFeeVaultRecipient = "0xb03884A8c5bB132379173E459dBD7cfE3f93eFbd"
+            operatorFeeVaultRecipient = "0xb03884A8c5bB132379173E459dBD7cfE3f93eFbd"
+            eip1559DenominatorCanyon = 250
+            eip1559Denominator = 50
+            eip1559Elasticity = 6
+            gasLimit = 60000000
+            operatorFeeScalar = 0
+            operatorFeeConstant = 0
+            useRevenueShare = true
+            chainFeesRecipient = "0xb03884A8c5bB132379173E459dBD7cfE3f93eFbd"
+            minBaseFee = 0
+            daFootprintGasScalar = 0
+            [chains.roles]
+              l1ProxyAdminOwner = "0x874F4b715E849A0Ae44Ea618494b4E6785c21ec0"
+              l2ProxyAdminOwner = "0x7792B6Cb5d04Fe2aF4814564bc062Cd68Eba07Ea"
+              systemConfigOwner = "0x73f3955dF7328Fc8f182dd0d8117E34fD3B72DC6"
+              unsafeBlockSigner = "0xd491A633ad0CA497460CC8564d0f820db3CE9623"
+              batcher = "0xBc6964904D146025BDE841B456A5366E242246F8"
+              proposer = "0x3DfF14508Daf6655926f8AE768aA88CD8D9c33E4"
+              challenger = "0x777be39eaFabf7Cb231CA343860405C6b7AA308f"
+          EOF
+
+      - name: Show state.json info
+        run: |
+          echo "=== State file size ==="
+          ls -la deployer/
+          echo "=== State.json first 500 chars ==="
+          head -c 500 deployer/state.json
+
+      - name: Generate genesis.json
+        run: |
+          ./op-deployer inspect genesis \
+            --workdir ./deployer \
+            --outfile genesis.json
+          echo "=== Genesis file created ==="
+          ls -la genesis.json
+          echo "=== Genesis preview (first 1000 chars) ==="
+          head -c 1000 genesis.json
+
+      - name: Generate rollup.json
+        run: |
+          ./op-deployer inspect rollup \
+            --workdir ./deployer \
+            --outfile rollup.json
+          echo "=== Rollup file created ==="
+          ls -la rollup.json
+          echo "=== Full rollup.json ==="
+          cat rollup.json
+
+      - name: Upload genesis.json
+        uses: actions/upload-artifact@v4
+        with:
+          name: genesis-config
+          path: genesis.json
+          retention-days: 90
+
+      - name: Upload rollup.json
+        uses: actions/upload-artifact@v4
+        with:
+          name: rollup-config
+          path: rollup.json
+          retention-days: 90
+
+      - name: Upload all configs bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: acid-chain-configs
+          path: |
+            genesis.json
+            rollup.json
+          retention-days: 90
