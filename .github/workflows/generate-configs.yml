@@ -78,9 +78,8 @@ jobs:
 
       - name: Generate genesis.json
         run: |
-          ./op-deployer-bin inspect genesis \
-            --workdir ./deployer \
-            --outfile genesis.json
+          # Chain ID 1714 = 0x6B2
+          ./op-deployer-bin inspect genesis --workdir ./deployer 1714 > genesis.json
           echo "=== Genesis file created ==="
           ls -la genesis.json
           echo "=== Genesis preview (first 1000 chars) ==="
@@ -88,9 +87,8 @@ jobs:
 
       - name: Generate rollup.json
         run: |
-          ./op-deployer-bin inspect rollup \
-            --workdir ./deployer \
-            --outfile rollup.json
+          # Chain ID 1714 = 0x6B2
+          ./op-deployer-bin inspect rollup --workdir ./deployer 1714 > rollup.json
           echo "=== Rollup file created ==="
           ls -la rollup.json
           echo "=== Full rollup.json ==="
