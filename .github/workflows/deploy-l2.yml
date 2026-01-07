@@ -61,7 +61,7 @@ jobs:
               challenger = "0x777be39eaFabf7Cb231CA343860405C6b7AA308f"
           EOF
 
-          echo '{}' > deployer/state.json
+          echo '{"version":1}' > deployer/state.json
 
       - name: Run deployment
         env:
